@@ -40,7 +40,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static reactor.netty.http.server.logging.AccessLog.LOG;
+import static reactor.netty.http.server.logging.DefaultAccessLog.LOG;
 
 class AccessLogTest extends BaseHttpTest {
 
@@ -171,6 +171,26 @@ class AccessLogTest extends BaseHttpTest {
 		getHttpClientResponse(URI_2);
 
 		assertAccessLogging(response, true, true, CUSTOM_FORMAT);
+	}
+
+	@Test
+	void accessLogCustomImplementation() {
+		AccessLog customAccessLog = Mockito.mock(AccessLog.class);
+		disposableServer = createServer()
+				.handle((req, resp) -> {
+					resp.withConnection(conn -> {
+						ChannelHandler handler = conn.channel().pipeline().get(NettyPipeline.AccessLogHandler);
+						resp.header(ACCESS_LOG_HANDLER, handler != null ? FOUND : NOT_FOUND);
+					});
+					return resp.send();
+				})
+				.accessLog(true, args -> customAccessLog)
+				.bindNow();
+
+		Tuple2<String, String> response = getHttpClientResponse(URI_1);
+		assertThat(response).isNotNull();
+		assertThat(response.getT2()).isEqualTo(FOUND);
+		Mockito.verify(customAccessLog, Mockito.times(1)).log();
 	}
 
 	void assertAccessLogging(

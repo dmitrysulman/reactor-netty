@@ -15,35 +15,37 @@
  */
 package reactor.netty.http.server.logging;
 
+import reactor.util.Logger;
+import reactor.util.Loggers;
+
+import java.util.Objects;
+
 /**
- * Interface for logging HTTP access information using the {@code log()} method.
- * <p>
- * See {@link AccessLogFactory} for convenience methods to create an access log factory to be passed to
- * {@link reactor.netty.http.server.HttpServer#accessLog(boolean, AccessLogFactory)} during server configuration.
+ * Default implementation of {@link AccessLog} that logs HTTP access information into a Logger named
+ * {@code reactor.netty.http.server.AccessLog} at INFO level.
  *
  * @author limaoning
  * @author Dmitry Sulman
- * @since 1.0.1
+ * @since 1.3.0
  */
-public interface AccessLog {
+public final class DefaultAccessLog implements AccessLog {
 
-	/**
-	 * Creates a default access log implementation.
-	 *
-	 * @param logFormat the log format string
-	 * @param args the list of arguments
-	 *
-	 * @return {@link DefaultAccessLog} instance
-	 *
-	 * @see DefaultAccessLog
-	 */
-	static AccessLog create(String logFormat, Object... args) {
-		return new DefaultAccessLog(logFormat, args);
+	static final Logger LOG = Loggers.getLogger("reactor.netty.http.server.AccessLog");
+
+	final String logFormat;
+	final Object[] args;
+
+	DefaultAccessLog(String logFormat, Object... args) {
+		Objects.requireNonNull(logFormat, "logFormat");
+		this.logFormat = logFormat;
+		this.args = args;
 	}
 
-	/**
-	 *  Logs HTTP access information.
-	 */
-	void log();
+	@Override
+	public void log() {
+		if (LOG.isInfoEnabled()) {
+			LOG.info(logFormat, args);
+		}
+	}
 
 }
